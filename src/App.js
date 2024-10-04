@@ -1,8 +1,9 @@
+import Switch from '@mui/material/Switch';
 import { useState } from 'react';
 
-function Square({ value, onSquareClick }) {
+function Square({ value, onSquareClick, isHighlighted }) {
     return (
-        <button className="square" onClick={onSquareClick}>
+        <button className="square" onClick={onSquareClick} style={{ backgroundColor: isHighlighted ? 'green' : '#fff' }}>
             {value}
         </button>
     );
@@ -10,8 +11,9 @@ function Square({ value, onSquareClick }) {
 
 function Board({ xIsNext, squares, onPlay }) {
     let n = Math.sqrt(squares.length)
+    let line = [];
     function handleClick(i) {
-        if (calculateWinner(squares) || squares[i]) {
+        if (calculateWinner(squares, line) || squares[i]) {
             return;
         }
         const nextSquares = squares.slice();
@@ -23,11 +25,16 @@ function Board({ xIsNext, squares, onPlay }) {
         onPlay(nextSquares);
     }
 
-    const winner = calculateWinner(squares);
+    const winner = calculateWinner(squares, line);
+    const draw = checkDraw(squares);
     let status;
     if (winner) {
         status = 'Winner: ' + winner;
-    } else {
+    }
+    else if (draw) {
+        status = 'Draw'
+    }
+    else {
         status = 'Next player: ' + (xIsNext ? 'X' : 'O');
     }
 
@@ -39,7 +46,9 @@ function Board({ xIsNext, squares, onPlay }) {
                     {[...Array(n)].map((_, col) => {
                         const index = row * n + col;
                         return (
-                            <Square key={col} value={squares[index]} onSquareClick={() => handleClick(index)} />
+                            line[0] && line[0].includes(index) ? <Square key={col} value={squares[index]} onSquareClick={() => handleClick(index)} isHighlighted={true} />
+                                : <Square key={col} value={squares[index]} onSquareClick={() => handleClick(index)} isHighlighted={false} />
+
                         );
                     })}
                 </div>
@@ -53,7 +62,11 @@ function Game({ board }) {
     const [currentMove, setCurrentMove] = useState(0);
     const xIsNext = currentMove % 2 === 0;
     const currentSquares = history[currentMove];
+    const [isToggled, setIsToggled] = useState(false);
 
+    const toggle = () => {
+        setIsToggled(!isToggled);
+    };
     function handlePlay(nextSquares) {
         const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
         setHistory(nextHistory);
@@ -66,31 +79,46 @@ function Game({ board }) {
 
     const moves = history.map((squares, move) => {
         let description;
+
+        if (isToggled) {
+            move = history.length - move - 1;
+        }
         if (move > 0) {
             description = 'Go to move #' + move;
         } else {
             description = 'Go to game start';
         }
         return (
-            <li key={move}>
-                <button onClick={() => jumpTo(move)}>{description}</button>
-            </li>
+            <>
+                <li key={move}>
+                    {
+                        currentMove === move ? (move === 0 ? "You are at Start" : `You are at move #${move}`) : <button onClick={() => jumpTo(move)}>{description}</button>
+                    }
+                </li>
+            </>
+
         );
     });
 
     return (
-        <div className="game">
-            <div className="game-board">
-                <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+        <>
+            {
+                isToggled === true ? <label>DESCENDING</label> : <label>ASCENDING</label>
+            }
+            <Switch checked={isToggled} onChange={toggle} />
+            <div className="game">
+                <div className="game-board">
+                    <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+                </div>
+                <div className="game-info">
+                    <ol>{moves}</ol>
+                </div>
             </div>
-            <div className="game-info">
-                <ol>{moves}</ol>
-            </div>
-        </div>
+        </>
     );
 }
 
-function calculateWinner(squares) {
+function calculateWinner(squares, line) {
     const n = Math.sqrt(squares.length)
     const lines = [];
     //rows and columns
@@ -116,12 +144,20 @@ function calculateWinner(squares) {
     for (let i = 0; i < lines.length; i++) {
         const [a, ...rest] = lines[i];
         if (squares[a] && rest.every(index => squares[index] === squares[a])) {
+            line.push(lines[i])
             return squares[a];
         }
     }
     return null;
 }
-
+function checkDraw(squares) {
+    for (let i = 0; i < squares.length; i++) {
+        if (!squares[i]) {
+            return false;
+        }
+    }
+    return true;
+}
 export default function Mode() {
     const [board, setBoard] = useState(3);
     const [showGame, setShowGame] = useState(false)
