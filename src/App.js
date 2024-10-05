@@ -9,10 +9,11 @@ function Square({ value, onSquareClick, isHighlighted }) {
     );
 }
 
-function Board({ xIsNext, squares, onPlay }) {
+function Board({ xIsNext, squares, onPlay, locations }) {
     let n = Math.sqrt(squares.length)
     let line = [];
     function handleClick(i) {
+        locations.push(i)
         if (calculateWinner(squares, line) || squares[i]) {
             return;
         }
@@ -59,6 +60,7 @@ function Board({ xIsNext, squares, onPlay }) {
 
 function Game({ board }) {
     const [history, setHistory] = useState([Array(board * board).fill(null)]); //two dimensions arrays
+    const [location] = useState([]);
     const [currentMove, setCurrentMove] = useState(0);
     const xIsNext = currentMove % 2 === 0;
     const currentSquares = history[currentMove];
@@ -76,15 +78,13 @@ function Game({ board }) {
     function jumpTo(nextMove) {
         setCurrentMove(nextMove);
     }
-
     const moves = history.map((squares, move) => {
         let description;
-
         if (isToggled) {
             move = history.length - move - 1;
         }
         if (move > 0) {
-            description = 'Go to move #' + move;
+            description = `Go to move #${move}: (${Math.floor(location[move - 1] / board)},${location[move - 1] % board})`;
         } else {
             description = 'Go to game start';
         }
@@ -92,7 +92,7 @@ function Game({ board }) {
             <>
                 <li key={move}>
                     {
-                        currentMove === move ? (move === 0 ? "You are at Start" : `You are at move #${move}`) : <button onClick={() => jumpTo(move)}>{description}</button>
+                        currentMove === move ? (move === 0 ? "You are at Start" : `You are at move #${move}: (${Math.floor(location[move - 1] / board)},${location[move - 1] % board})`) : <button onClick={() => jumpTo(move)}>{description}</button>
                     }
                 </li>
             </>
@@ -108,7 +108,7 @@ function Game({ board }) {
             <Switch checked={isToggled} onChange={toggle} />
             <div className="game">
                 <div className="game-board">
-                    <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+                    <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} locations={location} />
                 </div>
                 <div className="game-info">
                     <ol>{moves}</ol>
