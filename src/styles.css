@@ -5,6 +5,8 @@
 body {
     font-family: sans-serif;
     margin: 20px;
+    background: #141b28;
+    color: #fff;
     padding: 0;
 }
 
@@ -58,17 +60,19 @@ body {
 
 .square {
     background: #fff;
-    border: 1px solid #999;
+    border: 3px solid #999;
+    color: #fff;
     float: left;
-    font-size: 24px;
+    font-size: 90px;
     font-weight: bold;
     line-height: 34px;
-    height: 34px;
+    height: 125px;
     margin-right: -1px;
     margin-top: -1px;
     padding: 0;
     text-align: center;
-    width: 34px;
+    width: 125px;
+    cursor: pointer;
 }
 
 .board-row:after {
@@ -79,13 +83,25 @@ body {
 
 .status {
     margin-bottom: 10px;
+    text-align: center;
+    font-size: 34px;
 }
 
 .game {
     display: flex;
+    justify-content: center;
     flex-direction: row;
+    margin-top: 60px;
 }
 
 .game-info {
     margin-left: 20px;
+}
+
+.home {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    height: 60vh;
+    justify-content: center;
 }

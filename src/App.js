@@ -1,15 +1,18 @@
+import { Button, TextField } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import { useState } from 'react';
-
-function Square({ value, onSquareClick, isHighlighted }) {
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from 'react-toastify';
+function Square({ value, onSquareClick, isHighlighted, onSquareEnter, onSquareLeave, isHovered }) {
     return (
-        <button className="square" onClick={onSquareClick} style={{ backgroundColor: isHighlighted ? 'green' : '#fff' }}>
+        <button className="square" onMouseEnter={onSquareEnter} onMouseLeave={onSquareLeave} onClick={onSquareClick} style={{ backgroundColor: isHighlighted ? 'green' : '#141b28', opacity: isHovered ? 0.7 : 1 }}>
             {value}
         </button>
     );
 }
 
 function Board({ xIsNext, squares, onPlay, locations }) {
+    const [hoverIndex, setHoverIndex] = useState(null);
     let n = Math.sqrt(squares.length)
     let line = [];
     function handleClick(i) {
@@ -18,14 +21,18 @@ function Board({ xIsNext, squares, onPlay, locations }) {
             return;
         }
         const nextSquares = squares.slice();
-        if (xIsNext) {
-            nextSquares[i] = 'X';
-        } else {
-            nextSquares[i] = 'O';
-        }
+        nextSquares[i] = xIsNext ? 'X' : 'O';
+        setHoverIndex(null);
         onPlay(nextSquares);
     }
-
+    function handMouseEnter(i) {
+        if (!squares[i] && !calculateWinner(squares, line)) {
+            setHoverIndex(i);
+        }
+    }
+    function handleMouseLeave() {
+        setHoverIndex(null);
+    }
     const winner = calculateWinner(squares, line);
     const draw = checkDraw(squares);
     let status;
@@ -46,9 +53,10 @@ function Board({ xIsNext, squares, onPlay, locations }) {
                 <div className="board-row" key={row}>
                     {[...Array(n)].map((_, col) => {
                         const index = row * n + col;
+                        const isHovered = index === hoverIndex;
                         return (
-                            line[0] && line[0].includes(index) ? <Square key={col} value={squares[index]} onSquareClick={() => handleClick(index)} isHighlighted={true} />
-                                : <Square key={col} value={squares[index]} onSquareClick={() => handleClick(index)} isHighlighted={false} />
+                            line[0] && line[0].includes(index) ? <Square key={index} value={squares[index]} onSquareClick={() => handleClick(index)} isHighlighted={true} />
+                                : <Square key={index} value={squares[index] || (isHovered ? (xIsNext ? 'X' : 'O') : '')} onSquareClick={() => handleClick(index)} isHighlighted={false} isHovered={isHovered} onSquareEnter={() => handMouseEnter(index)} onSquareLeave={handleMouseLeave} />
 
                         );
                     })}
@@ -64,7 +72,7 @@ function Game({ board }) {
     const [currentMove, setCurrentMove] = useState(0);
     const xIsNext = currentMove % 2 === 0;
     const currentSquares = history[currentMove];
-    const [isToggled, setIsToggled] = useState(false);
+    const [isToggled, setIsToggled] = useState(true);
 
     const toggle = () => {
         setIsToggled(!isToggled);
@@ -74,14 +82,14 @@ function Game({ board }) {
         setHistory(nextHistory);
         setCurrentMove(nextHistory.length - 1);
     }
-
     function jumpTo(nextMove) {
         setCurrentMove(nextMove);
     }
-    const moves = history.map((squares, move) => {
+    const moves = history.map((squares, index) => {
+        let move = index;
         let description;
-        if (isToggled) {
-            move = history.length - move - 1;
+        if (!isToggled) {
+            move = history.length - index - 1;
         }
         if (move > 0) {
             description = `Go to move #${move}: (${Math.floor(location[move - 1] / board)},${location[move - 1] % board})`;
@@ -89,28 +97,25 @@ function Game({ board }) {
             description = 'Go to game start';
         }
         return (
-            <>
-                <li key={move}>
-                    {
-                        currentMove === move ? (move === 0 ? "You are at Start" : `You are at move #${move}: (${Math.floor(location[move - 1] / board)},${location[move - 1] % board})`) : <button onClick={() => jumpTo(move)}>{description}</button>
-                    }
-                </li>
-            </>
-
+            <li key={index} style={{ margin: "3.2px" }}>
+                {
+                    currentMove === move ? (move === 0 ? "You are at Start" : `You are at move #${move}: (${Math.floor(location[move - 1] / board)},${location[move - 1] % board})`) : <button onClick={() => jumpTo(move)}>{description}</button>
+                }
+            </li>
         );
     });
 
     return (
         <>
-            {
-                isToggled === true ? <label>DESCENDING</label> : <label>ASCENDING</label>
-            }
-            <Switch checked={isToggled} onChange={toggle} />
             <div className="game">
                 <div className="game-board">
                     <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} locations={location} />
                 </div>
                 <div className="game-info">
+                    {
+                        isToggled === true ? <label>ASCENDING</label> : <label>DESCENDING</label>
+                    }
+                    <Switch checked={isToggled} onChange={toggle} />
                     <ol>{moves}</ol>
                 </div>
             </div>
@@ -162,16 +167,21 @@ export default function Mode() {
     const [board, setBoard] = useState(3);
     const [showGame, setShowGame] = useState(false)
     function handleClick() {
-        setShowGame(true)
+        if (board >= 3 && board <= 10)
+            setShowGame(true)
+        toast.error("Invalid board size ! The board size range from 3 to 9.")
     }
     function handleChange(event) {
         const newBoard = parseInt(event.target.value, 10);
         setBoard(newBoard)
     }
     return (
-        showGame === true ? <Game board={board} /> : <>
-            <div>My game</div>
-            <input value={board} type='number' onChange={(event) => handleChange(event)} />
-            <button onClick={() => handleClick()}>OK</button></>
+        showGame === true ? <Game board={board} /> :
+            <div className='home'>
+                <div><b>Set Game Board Size (ex: 3 for 3x3)</b></div>
+                <TextField id="outlined-basic" margin='normal' size='small' value={board} onChange={(event) => handleChange(event)} type='number' style={{ backgroundColor: "#fff" }} />
+                <Button variant="contained" onClick={() => handleClick()} ><b>Play</b></Button>
+                <ToastContainer />
+            </div>
     )
 }
